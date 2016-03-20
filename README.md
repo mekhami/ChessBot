@@ -7,4 +7,5 @@
 2. !live <person> - Link to that user's current live game on lichess
 3. !board <move list> - Create a lichess analysis board based off of a move
    list i.e. e4 d5 exd5 Qxd5
-
+4. !register <username> - Register your lichess username as an alias for your
+   freenode username
