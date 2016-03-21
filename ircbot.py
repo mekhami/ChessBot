@@ -62,39 +62,32 @@ class ChessBotIRCProtocol(irc.IRCClient):
     def _showError(self, failure):
         return failure.getErrorMessage()
 
-    def command_team(self, rest):
-        teamname = rest.partition(' ')
-        if teamname[0]:
-            try:
-                response = urllib2.urlopen("http://en.lichess.org/api/user?team={}&nb=100".format(teamname[0]))
-                data = json.load(response)
-            except:
-                return
-            online_users = ""
-            
-            for a in data['list']:
-                try:
-                    if(a['online']):
-                        online_users += " {}".format(a['username'])
-                except:
-                    pass
-            return "{} players online:{}".format(teamname[0], online_users)
+    def command_team(self, team):
+        response = urllib2.urlopen("http://en.lichess.org/api/user?team={}&nb=100".format(team))
+        data = json.load(response)
 
-    def command_live(self, rest):
-        player = rest.partition(' ')
-        if player[0]:
+        online_users = ""
+        
+        for a in data['list']:
+            if(a['online']):
+                online_users += " {}".format(a['username'])
+
+        return "{} players online:{}".format(team, online_users)
+
+    def command_live(self, player):
+        if player:
             try:
-                response = urllib2.urlopen("http://en.lichess.org/api/user/" + player[0])
+                response = urllib2.urlopen("http://en.lichess.org/api/user/" + player)
                 data = json.load(response)
-                return "{} is playing at {}".format(player[0], data['playing'])
+                return "{} is playing at {}".format(player, data['playing'])
             except urllib2.HTTPError as err:
                 if(err.code == 404):
-                    return "{} was not found on Lichess.org".format(player[0])
+                    return "{} was not found on Lichess.org".format(player)
                 return "HTTPError ({}) - {}".format(err.code, err.reason)
             except urllib2.URLError as err:
                 return "URLError - {}".format(err.reason)
             except KeyError:
-                return "{} is not currently playing".format(player[0])
+                return "{} is not currently playing".format(player)
         else:
             # show all channel members on lichess
             pass
