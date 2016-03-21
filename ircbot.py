@@ -63,21 +63,21 @@ class ChessBotIRCProtocol(irc.IRCClient):
     def command_live(self, rest):
         player = rest.partition(' ')
         if player:
+            # find the player on lichess
             try:
-                f = urllib.request.urlopen("http://en.lichess.org/api/user/" + username).read().decode("utf-8")
+                f = urllib.request.urlopen("http://en.lichess.org/api/user/" + player).read().decode("utf-8")
             except urllib.error.HTTPError as err:
                 if(err.code == 404):
-                    return username + " was not found on Lichess.org"
+                    return player + " was not found on Lichess.org"
                 return "HTTPError (" + str(err.code) + ") - " + err.reason
             except urllib.error.URLError as err:
                 return "URLError - " + err.reason
             
             for a in f.split(','):
                 if(a.find("\"playing\":\"") == 0):
-                    playing_url = a[11:-1]
-                    return username + " is playing at " + playing_url
+                    return player + " is playing at " + a[11:-1]
             
-            return username + " is not currently playing"
+            return player + " is not currently playing"
         else:
             # show all channel members on lichess
             pass
