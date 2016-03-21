@@ -656,34 +656,11 @@ class ChessBotIRCProtocol(irc.IRCClient):
 
     def _showError(self, failure):
         return failure.getErrorMessage()
-
-<<<<<<< HEAD
+    
     def command_board(self, rest):
         game = ChessGame()
         return "Lichess url: {}".format(game.getLichessURL(rest))
-
-    def command_team(self, rest):
-        teamname = rest.partition(' ')
-        if teamname[0]:
-            try:
-                response = urllib2.urlopen("http://en.lichess.org/api/user?team={}&nb=100".format(teamname[0]))
-                data = json.load(response)
-            except:
-                return
-            online_users = ""
-            
-            for a in data['list']:
-                try:
-                    if(a['online']):
-                        online_users += " {}".format(a['username'])
-                except:
-                    pass
-            return "{} players online:{}".format(teamname[0], online_users)
-
-    def command_live(self, rest):
-        player = rest.partition(' ')
-        if player[0]:
-=======
+    
     def command_team(self, team):
         response = urllib2.urlopen("http://en.lichess.org/api/user?team={}&nb=100".format(team))
         data = json.load(response)
@@ -698,7 +675,6 @@ class ChessBotIRCProtocol(irc.IRCClient):
 
     def command_live(self, player):
         if player:
->>>>>>> refs/remotes/mekhami/master
             try:
                 response = urllib2.urlopen("http://en.lichess.org/api/user/" + player)
                 data = json.load(response)
