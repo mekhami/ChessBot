@@ -83,9 +83,9 @@ class ChessBotIRCProtocol(irc.IRCClient):
             except urllib2.HTTPError as err:
                 if(err.code == 404):
                     return "{} was not found on Lichess.org".format(player)
-                return "HTTPError ({}) - {}".format(err.code, err.reason)
+                log.err()
             except urllib2.URLError as err:
-                return "URLError - {}".format(err.reason)
+                log.err()
             except KeyError:
                 return "{} is not currently playing".format(player)
         else:
