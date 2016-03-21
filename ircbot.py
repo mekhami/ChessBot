@@ -657,6 +657,7 @@ class ChessBotIRCProtocol(irc.IRCClient):
     def _showError(self, failure):
         return failure.getErrorMessage()
 
+<<<<<<< HEAD
     def command_board(self, rest):
         game = ChessGame()
         return "Lichess url: {}".format(game.getLichessURL(rest))
@@ -682,18 +683,34 @@ class ChessBotIRCProtocol(irc.IRCClient):
     def command_live(self, rest):
         player = rest.partition(' ')
         if player[0]:
+=======
+    def command_team(self, team):
+        response = urllib2.urlopen("http://en.lichess.org/api/user?team={}&nb=100".format(team))
+        data = json.load(response)
+
+        online_users = ""
+        
+        for a in data['list']:
+            if(a['online']):
+                online_users += " {}".format(a['username'])
+
+        return "{} players online:{}".format(team, online_users)
+
+    def command_live(self, player):
+        if player:
+>>>>>>> refs/remotes/mekhami/master
             try:
-                response = urllib2.urlopen("http://en.lichess.org/api/user/" + player[0])
+                response = urllib2.urlopen("http://en.lichess.org/api/user/" + player)
                 data = json.load(response)
-                return "{} is playing at {}".format(player[0], data['playing'])
+                return "{} is playing at {}".format(player, data['playing'])
             except urllib2.HTTPError as err:
                 if(err.code == 404):
-                    return "{} was not found on Lichess.org".format(player[0])
-                return "HTTPError ({}) - {}".format(err.code, err.reason)
+                    return "{} was not found on Lichess.org".format(player)
+                log.err()
             except urllib2.URLError as err:
-                return "URLError - {}".format(err.reason)
+                log.err()
             except KeyError:
-                return "{} is not currently playing".format(player[0])
+                return "{} is not currently playing".format(player)
         else:
             # show all channel members on lichess
             pass
