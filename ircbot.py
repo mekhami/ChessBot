@@ -1,9 +1,9 @@
 import sys
+import urllib.request
 
 from twisted.internet import defer, endpoints, protocol, reactor, task
 from twisted.python import log
 from twisted.words.protocols import irc
-
 
 class ChessBotIRCProtocol(irc.IRCClient):
     nickname = 'ChessBot'
@@ -64,7 +64,20 @@ class ChessBotIRCProtocol(irc.IRCClient):
         player = rest.partition(' ')
         if player:
             # find the player on lichess
-            pass
+            try:
+                f = urllib.request.urlopen("http://en.lichess.org/api/user/" + player).read().decode("utf-8")
+            except urllib.error.HTTPError as err:
+                if(err.code == 404):
+                    return player + " was not found on Lichess.org"
+                return "HTTPError (" + str(err.code) + ") - " + err.reason
+            except urllib.error.URLError as err:
+                return "URLError - " + err.reason
+            
+            for a in f.split(','):
+                if(a.find("\"playing\":\"") == 0):
+                    return player + " is playing at " + a[11:-1]
+            
+            return player + " is not currently playing"
         else:
             # show all channel members on lichess
             pass
