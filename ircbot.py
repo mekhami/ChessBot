@@ -62,14 +62,31 @@ class ChessBotIRCProtocol(irc.IRCClient):
     def _showError(self, failure):
         return failure.getErrorMessage()
 
+    def command_team(self, rest):
+        teamname = rest.partition(' ')
+        if teamname[0]:
+            try:
+                response = urllib2.urlopen("http://en.lichess.org/api/user?team={}&nb=100".format(teamname[0]))
+                data = json.load(response)
+            except:
+                return
+            online_users = ""
+            
+            for a in data['list']:
+                try:
+                    if(a['online']):
+                        online_users += " {}".format(a['username'])
+                except:
+                    pass
+            return "{} players online:{}".format(teamname[0], online_users)
+
     def command_live(self, rest):
         player = rest.partition(' ')
-        
         if player[0]:
             try:
                 response = urllib2.urlopen("http://en.lichess.org/api/user/" + player[0])
                 data = json.load(response)
-                return player[0] + " is playing at " + data['playing']
+                return "{} is playing at {}".format(player[0], data['playing'])
             except urllib2.HTTPError as err:
                 if(err.code == 404):
                     return "{} was not found on Lichess.org".format(player[0])
@@ -86,7 +103,6 @@ class ChessBotIRCProtocol(irc.IRCClient):
 class ChessIRCFactory(protocol.ReconnectingClientFactory):
     protocol = ChessBotIRCProtocol
     channels = ['#chesstest']
-
 
 def main(reactor, description):
     endpoint = endpoints.clientFromString(reactor, description)
