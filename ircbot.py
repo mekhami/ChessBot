@@ -1,9 +1,11 @@
 import sys
-import urllib.request
+import urllib2
+import json
 
 from twisted.internet import defer, endpoints, protocol, reactor, task
 from twisted.python import log
 from twisted.words.protocols import irc
+
 
 class ChessBotIRCProtocol(irc.IRCClient):
     nickname = 'ChessBot'
@@ -60,24 +62,39 @@ class ChessBotIRCProtocol(irc.IRCClient):
     def _showError(self, failure):
         return failure.getErrorMessage()
 
+    def command_team(self, rest):
+        teamname = rest.partition(' ')
+        if teamname[0]:
+            try:
+                response = urllib2.urlopen("http://en.lichess.org/api/user?team={}&nb=100".format(teamname[0]))
+                data = json.load(response)
+            except:
+                return
+            online_users = ""
+            
+            for a in data['list']:
+                try:
+                    if(a['online']):
+                        online_users += " {}".format(a['username'])
+                except:
+                    pass
+            return "{} players online:{}".format(teamname[0], online_users)
+
     def command_live(self, rest):
         player = rest.partition(' ')
-        if player:
-            # find the player on lichess
+        if player[0]:
             try:
-                f = urllib.request.urlopen("http://en.lichess.org/api/user/" + player).read().decode("utf-8")
-            except urllib.error.HTTPError as err:
+                response = urllib2.urlopen("http://en.lichess.org/api/user/" + player[0])
+                data = json.load(response)
+                return "{} is playing at {}".format(player[0], data['playing'])
+            except urllib2.HTTPError as err:
                 if(err.code == 404):
-                    return player + " was not found on Lichess.org"
-                return "HTTPError (" + str(err.code) + ") - " + err.reason
-            except urllib.error.URLError as err:
-                return "URLError - " + err.reason
-            
-            for a in f.split(','):
-                if(a.find("\"playing\":\"") == 0):
-                    return player + " is playing at " + a[11:-1]
-            
-            return player + " is not currently playing"
+                    return "{} was not found on Lichess.org".format(player[0])
+                return "HTTPError ({}) - {}".format(err.code, err.reason)
+            except urllib2.URLError as err:
+                return "URLError - {}".format(err.reason)
+            except KeyError:
+                return "{} is not currently playing".format(player[0])
         else:
             # show all channel members on lichess
             pass
@@ -87,14 +104,12 @@ class ChessIRCFactory(protocol.ReconnectingClientFactory):
     protocol = ChessBotIRCProtocol
     channels = ['#chesstest']
 
-
 def main(reactor, description):
     endpoint = endpoints.clientFromString(reactor, description)
     factory = ChessIRCFactory()
     d = endpoint.connect(factory)
     d.addCallback(lambda protocol: protocol.deferred)
     return d
-
 
 if __name__ == '__main__':
     log.startLogging(sys.stderr)
