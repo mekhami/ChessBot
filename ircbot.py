@@ -8,7 +8,7 @@ from twisted.words.protocols import irc
 
 
 class ChessBotIRCProtocol(irc.IRCClient):
-    nickname = 'ChessBot2'
+    nickname = 'ChessBot'
 
     def __init__(self):
         self.deferred = defer.Deferred()
