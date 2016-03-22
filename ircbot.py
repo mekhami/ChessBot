@@ -129,7 +129,7 @@ class ChessGame(object):
         fen = self.getFEN()
         fen = fen.replace(" ", "_")
         
-        return "http://lichess.org/editor/{}".format(fen)
+        return "http://lichess.org/analysis/{}".format(fen)
 
     def printBoard(self):
         for y in range(0, 8):
@@ -139,11 +139,21 @@ class ChessGame(object):
         print("Turn: {}".format(self.turn))
         print("Castling: {}".format(self.castling))
     
+    def charToCol(self, char):
+        return ord(char) - 97
+    
+    def charToRow(self, char):
+        return int(char) - 1
+    
     def posGetCol(self, str):
-        return ord(str[0]) - 97
+        if(len(str) != 2):
+            return -1
+        return self.charToCol(str[0])
     
     def posGetRow(self, str):
-        return int(str[1]) - 1
+        if(len(str) != 2):
+            return -1
+        return self.charToRow(str[1])
     
     def boardGet(self, col, row):
         return self.board[col+2][row+2]
@@ -151,200 +161,202 @@ class ChessGame(object):
     def boardSet(self, col, row, piece):
         self.board[col+2][row+2] = piece
     
-    def findMoveWP(self, col_to, row_to, hint="-"):
-        if(hint != "-"):
-            return [self.posGetCol(hint), row_to-1]
-        else:
-            if(self.boardGet(col_to, row_to-1) == "P"):
-                return [col_to, row_to-1]
-            elif(self.boardGet(col_to, row_to-2) == "P"):
-                return [col_to, row_to-2]
-            else:
-                return None
-    
-    def findMoveBP(self, col_to, row_to, hint="-"):
-        if(hint != "-"):
-            return [self.posGetCol(hint), row_to+1]
-        else:
-            if(self.boardGet(col_to, row_to+1) == "p"):
-                return [col_to, row_to+1]
-            elif(self.boardGet(col_to, row_to+2) == "p"):
-                return [col_to, row_to+2]
-            else:
-                return None
-    
-    def findMoveN(self, piece, col_to, row_to, hint="-"):
+    def findMoveWP(self, col_to, row_to):
         results = []
+        
+        # ep
+        if(self.posGetCol(self.ep) == col_to and self.posGetRow(self.ep) == row_to):
+            # Down 1 left 1
+            if(self.boardGet(col_to-1, row_to-1) == "P"):
+                results.append(["P", col_to-1, row_to-1])
+            
+            # Down 1 right 1
+            if(self.boardGet(col_to+1, row_to-1) == "P"):
+                results.append(["P", col_to+1, row_to-1])
+        
+        # Captures
+        if("pnbrqk".find(self.boardGet(col_to, row_to)) >= 0):
+            # Down 1 left 1
+            if(self.boardGet(col_to-1, row_to-1) == "P"):
+                results.append(["P", col_to-1, row_to-1])
+            
+            # Down 1 right 1
+            if(self.boardGet(col_to+1, row_to-1) == "P"):
+                results.append(["P", col_to+1, row_to-1])
+        
+        # Down 1
+        if(self.boardGet(col_to, row_to-1) == "P"):
+            results.append(["P", col_to, row_to-1])
+        
+        # Down 2
+        if(self.boardGet(col_to, row_to-2) == "P" and row_to == 3):
+            # Down 1
+            if(self.boardGet(col_to, row_to-1) == "-"):
+                results.append(["P", col_to, row_to-2])
+        
+        return results
     
+    def findMoveBP(self, col_to, row_to):
+        results = []
+        
+        # ep
+        if(self.posGetCol(self.ep) == col_to and self.posGetRow(self.ep) == row_to):
+            # Up 1 left 1
+            if(self.boardGet(col_to-1, row_to+1) == "p"):
+                results.append(["p", col_to-1, row_to+1])
+            
+            # Up 1 right 1
+            if(self.boardGet(col_to+1, row_to+1) == "p"):
+                results.append(["p", col_to+1, row_to+1])
+        
+        # Captures
+        if("PNBRQK".find(self.boardGet(col_to, row_to)) >= 0):
+          # Up 1 left 1
+          if(self.boardGet(col_to-1, row_to+1) == "p"):
+              results.append(["p", col_to-1, row_to+1])
+          
+          # Up 1 right 1
+          if(self.boardGet(col_to+1, row_to+1) == "p"):
+              results.append(["p", col_to+1, row_to+1])
+        
+        # Up 1
+        if(self.boardGet(col_to, row_to+1) == "p"):
+            results.append(["p", col_to, row_to+1])
+        
+        # Up 2
+        if(self.boardGet(col_to, row_to+2) == "p" and row_to == 4):
+            # Up 1
+            if(self.boardGet(col_to, row_to+1) == "-"):
+                results.append(["p", col_to, row_to+2])
+        
+        return results
+    
+    def findMoveN(self, piece, col_to, row_to):
+        results = []
+        
         if(self.boardGet(col_to-1, row_to+2) == piece): # Up 2 left 1
-            results.append([col_to-1, row_to+2])
+            results.append([piece, col_to-1, row_to+2])
         if(self.boardGet(col_to+1, row_to+2) == piece): # Up 2 right 1
-            results.append([col_to+1, row_to+2])
+            results.append([piece, col_to+1, row_to+2])
         if(self.boardGet(col_to-1, row_to-2) == piece): # Down 2 left 1
-            results.append([col_to-1, row_to-2])
+            results.append([piece, col_to-1, row_to-2])
         if(self.boardGet(col_to+1, row_to-2) == piece): # Down 2 right 1
-            results.append([col_to+1, row_to-2])
+            results.append([piece, col_to+1, row_to-2])
         if(self.boardGet(col_to+2, row_to+1) == piece): # Right 2 up 1
-            results.append([col_to+2, row_to+1])
+            results.append([piece, col_to+2, row_to+1])
         if(self.boardGet(col_to+2, row_to-1) == piece): # Right 2 down 1
-            results.append([col_to+2, row_to-1])
+            results.append([piece, col_to+2, row_to-1])
         if(self.boardGet(col_to-2, row_to+1) == piece): # Left 2 up 1
-            results.append([col_to-2, row_to+1])
+            results.append([piece, col_to-2, row_to+1])
         if(self.boardGet(col_to-2, row_to-1) == piece): # Left 2 down 1
-            results.append([col_to-2, row_to-1])
+            results.append([piece, col_to-2, row_to-1])
         
-        if not results:
-            return None
-        
-        if(hint == "-"):
-            return results[0]
-        
-        # Find the result that matches the hint
-        for a in results:
-            if(hint.isalpha() == True):
-                if(a[0] == ord(hint) - 97):
-                    return a
-            else:
-                if(a[1] == int(hint)-1):
-                    return a
-        
-        return None
+        return results
     
-    def findMoveDiagonal(self, piece, col_to, row_to, hint="-"):
+    def findMoveDiagonal(self, piece, col_to, row_to):
         results = []
         
         # Up and right
         for a in range(1, 8):
             if(self.boardGet(col_to+a, row_to+a) != "-"):
                 if(self.boardGet(col_to+a, row_to+a) == piece):
-                    results.append([col_to+a, row_to+a])
+                    results.append([piece, col_to+a, row_to+a])
                 break
         
         # Up and left
         for a in range(1, 8):
             if(self.boardGet(col_to-a, row_to+a) != "-"):
                 if(self.boardGet(col_to-a, row_to+a) == piece):
-                    results.append([col_to-a, row_to+a])
+                    results.append([piece, col_to-a, row_to+a])
                 break
         
         # Down and right
         for a in range(1, 8):
             if(self.boardGet(col_to+a, row_to-a) != "-"):
                 if(self.boardGet(col_to+a, row_to-a) == piece):
-                    results.append([col_to+a, row_to-a])
+                    results.append([piece, col_to+a, row_to-a])
                 break
         
         # Down and left
         for a in range(1, 8):
             if(self.boardGet(col_to-a, row_to-a) != "-"):
                 if(self.boardGet(col_to-a, row_to-a) == piece):
-                    results.append([col_to-a, row_to-a])
+                    results.append([piece, col_to-a, row_to-a])
                 break
         
-        if not results:
-            return None
-        
-        if(hint == "-"):
-            return results[0]
-        
-        # Find the result that matches the hint
-        for a in results:
-            if(hint.isalpha() == True):
-                if(a[0] == ord(hint) - 97):
-                    return a
-            else:
-                if(a[1] == int(hint)):
-                    return a
+        return results
     
-    def findMoveStraight(self, piece, col_to, row_to, hint="-"):
+    def findMoveStraight(self, piece, col_to, row_to):
         results = []
         
         # Right
         for a in range(1, 8):
             if(self.boardGet(col_to+a, row_to) != "-"):
                 if(self.boardGet(col_to+a, row_to) == piece):
-                    results.append([col_to+a, row_to])
+                    results.append([piece, col_to+a, row_to])
                 break
         
         # Left
         for a in range(1, 8):
             if(self.boardGet(col_to-a, row_to) != "-"):
                 if(self.boardGet(col_to-a, row_to) == piece):
-                    results.append([col_to-a, row_to])
+                    results.append([piece, col_to-a, row_to])
                 break
         
         # Up
         for a in range(1, 8):
             if(self.boardGet(col_to, row_to+a) != "-"):
                 if(self.boardGet(col_to, row_to+a) == piece):
-                    results.append([col_to, row_to+a])
+                    results.append([piece, col_to, row_to+a])
                 break
         
         # Down
         for a in range(1, 8):
             if(self.boardGet(col_to, row_to-a) != "-"):
                 if(self.boardGet(col_to, row_to-a) == piece):
-                    results.append([col_to, row_to-a])
+                    results.append([piece, col_to, row_to-a])
                 break
         
-        if not results:
-            return None
-        
-        if(hint == "-"):
-            return results[0]
-        
-        # Find the result that matches the hint
-        for a in results:
-            if(hint.isalpha() == True):
-                if(a[0] == ord(hint) - 97):
-                    return a
-            else:
-                if(a[1] == int(hint)):
-                    return a
-        
-        return None
+        return results
     
-    def findMoveKing(self, piece, col_to, row_to, hint="-"):
+    def findMoveKing(self, piece, col_to, row_to):
         results = []
         
         if(self.boardGet(col_to, row_to+1) == piece): # Up 1
-            results.append([col_to, row_to+1])
+            results.append([piece, col_to, row_to+1])
         if(self.boardGet(col_to, row_to-1) == piece): # Down 1
-            results.append([col_to, row_to-1])
+            results.append([piece, col_to, row_to-1])
         if(self.boardGet(col_to+1, row_to) == piece): # Right 1
-            results.append([col_to+1, row_to])
+            results.append([piece, col_to+1, row_to])
         if(self.boardGet(col_to-1, row_to) == piece): # Left 1
-            results.append([col_to-1, row_to])
+            results.append([piece, col_to-1, row_to])
         if(self.boardGet(col_to+1, row_to+1) == piece): # Up 1 right 1
-            results.append([col_to+1, row_to+1])
+            results.append([piece, col_to+1, row_to+1])
         if(self.boardGet(col_to-1, row_to+1) == piece): # Up 1 left 1
-            results.append([col_to-1, row_to+1])
+            results.append([piece, col_to-1, row_to+1])
         if(self.boardGet(col_to+1, row_to-1) == piece): # Down 1 right 1
-            results.append([col_to+1, row_to-1])
+            results.append([piece, col_to+1, row_to-1])
         if(self.boardGet(col_to-1, row_to-1) == piece): # Down 1 left 1
-            results.append([col_to-1, row_to-1])
+            results.append([piece, col_to-1, row_to-1])
         
-        if not results:
-            return None
-        
-        return results[0]
+        return results
     
     def isWhiteAttacking(self, col, row):
         if(self.boardGet(col-1, row-1) == "P"):
             return True
         elif(self.boardGet(col+1, row-1) == "P"):
             return True
-        elif(self.findMoveN("N", col, row) != None):
+        elif(self.findMoveN("N", col, row) != []):
             return True;
-        elif(self.findMoveDiagonal("B", col, row) != None):
+        elif(self.findMoveDiagonal("B", col, row) != []):
             return True;
-        elif(self.findMoveStraight("R", col, row) != None):
+        elif(self.findMoveStraight("R", col, row) != []):
             return True;
-        elif(self.findMoveDiagonal("Q", col, row) != None):
+        elif(self.findMoveDiagonal("Q", col, row) != []):
             return True;
-        elif(self.findMoveStraight("Q", col, row) != None):
+        elif(self.findMoveStraight("Q", col, row) != []):
             return True;
-        elif(self.findMoveKing("K", col, row) != None):
+        elif(self.findMoveKing("K", col, row) != []):
             return True;
         else:
             return False
@@ -354,23 +366,37 @@ class ChessGame(object):
             return True
         elif(self.boardGet(col+1, row+1) == "p"):
             return True
-        elif(self.findMoveN("n", col, row) != None):
+        elif(self.findMoveN("n", col, row) != []):
             return True;
-        elif(self.findMoveDiagonal("b", col, row) != None):
+        elif(self.findMoveDiagonal("b", col, row) != []):
             return True;
-        elif(self.findMoveStraight("r", col, row) != None):
+        elif(self.findMoveStraight("r", col, row) != []):
             return True;
-        elif(self.findMoveDiagonal("q", col, row) != None):
+        elif(self.findMoveDiagonal("q", col, row) != []):
             return True;
-        elif(self.findMoveStraight("q", col, row) != None):
+        elif(self.findMoveStraight("q", col, row) != []):
             return True;
-        elif(self.findMoveKing("k", col, row) != None):
+        elif(self.findMoveKing("k", col, row) != []):
             return True;
         else:
             return False
     
     def colRowToStr(self, col, row):
         return chr(col + 97) + chr(row + 49)
+    
+    def onBoard(self, str):
+        if(len(str) != 2):
+            return False
+        
+        col = self.posGetCol(str)
+        if(col < 0 or col > 7):
+            return False
+        
+        row = self.posGetRow(str)
+        if(row < 0 or row > 7):
+            return False
+        
+        return True
     
     def moveMake(self, from_col, from_row, to_col, to_row, promotion="-"):
         # 50 move rule
@@ -379,7 +405,7 @@ class ChessGame(object):
         else:
             self.fiftyMoves += 1
         
-        # White castle permissions
+        # Castling permissions
         if((from_col == 4 and from_row == 0) or (to_col == 4 and to_row == 0)): # White king position
             self.castling = self.castling.replace("K", "")
             self.castling = self.castling.replace("Q", "")
@@ -387,7 +413,7 @@ class ChessGame(object):
             self.castling = self.castling.replace("Q", "")
         if((from_col == 7 and from_row == 0) or (to_col == 7 and to_row == 0)): # White h1 rook position
             self.castling = self.castling.replace("K", "")
-        # Black castle permissions
+        
         if((from_col == 4 and from_row == 7) or (to_col == 4 and to_row == 7)): # Black king position
             self.castling = self.castling.replace("k", "")
             self.castling = self.castling.replace("q", "")
@@ -401,11 +427,11 @@ class ChessGame(object):
         
         # Capture ep white
         if(self.ep != "-" and self.boardGet(from_col, from_row) == "P"):
-            if(self.posGetCol(self.ep) == to_col and self.posGetCol(self.ep) == to_col):
+            if(self.posGetCol(self.ep) == to_col and self.posGetRow(self.ep) == to_row):
                 self.boardSet(self.posGetCol(self.ep), self.posGetRow(self.ep)-1, "-")
         # Capture ep black
         if(self.ep != "-" and self.boardGet(from_col, from_row) == "p"):
-            if(self.posGetCol(self.ep) == to_col and self.posGetCol(self.ep) == to_col):
+            if(self.posGetCol(self.ep) == to_col and self.posGetRow(self.ep) == to_row):
                 self.boardSet(self.posGetCol(self.ep), self.posGetRow(self.ep)+1, "-")
         
         # Play the move
@@ -428,20 +454,27 @@ class ChessGame(object):
     def moveMakeWKSC(self):
         self.moveMake(4,0, 6,0) # King
         self.moveMake(7,0, 5,0) # Rook
+        self.fiftyMoves -= 1
     
     def moveMakeBKSC(self):
         self.moveMake(4,7, 6,7) # King
         self.moveMake(7,7, 5,7) # Rook
+        self.fiftyMoves -= 1
     
     def moveMakeWQSC(self):
         self.moveMake(4,0, 2,0) # King
         self.moveMake(0,0, 3,0) # Rook
+        self.fiftyMoves -= 1
     
     def moveMakeBQSC(self):
         self.moveMake(4,7, 2,7) # King
         self.moveMake(0,7, 3,7) # Rook
+        self.fiftyMoves -= 1
     
     def moveParse(self, move):
+        if(len(move) < 2):
+            return False
+    
         # Remove irrelevant characters
         strip = "!?+#x-:="
         for a in strip:
@@ -450,93 +483,172 @@ class ChessGame(object):
         # Special case of castling
         if(move == "OO" or move == "00"):
             if(self.turn == "w"):
+                # Check castling permissions
+                if(self.castling.find("K") < 0):
+                    return False
+                # Check squares attacked
+                if(self.isBlackAttacking(4, 0) == True): # e1
+                    return False
+                if(self.isBlackAttacking(5, 0) == True): # f1
+                    return False
+                if(self.isBlackAttacking(6, 0) == True): # g1
+                    return False
                 self.moveMakeWKSC()
-                return
+                return True
             elif(self.turn == "b"):
+                # Check castling permissions
+                if(self.castling.find("k") < 0):
+                    return False
+                # Check squares attacked
+                if(self.isWhiteAttacking(2, 0) == True): # c1
+                    return False
+                if(self.isWhiteAttacking(3, 0) == True): # d1
+                    return False
+                if(self.isWhiteAttacking(4, 0) == True): # e1
+                    return False
                 self.moveMakeBKSC()
-                return
+                return True
         elif(move == "OOO" or move == "000"):
             if(self.turn == "w"):
+                # Check castling permissions
+                if(self.castling.find("Q") < 0):
+                    return False
+                # Check squares attacked
+                if(self.isBlackAttacking(4, 7) == True): # e8
+                    return False
+                if(self.isBlackAttacking(5, 7) == True): # f8
+                    return False
+                if(self.isBlackAttacking(6, 7) == True): # g8
+                    return False
                 self.moveMakeWQSC()
-                return
+                return True
             elif(self.turn == "b"):
+                # Check castling permissions
+                if(self.castling.find("q") < 0):
+                    return False
+                # Check squares attacked
+                if(self.isWhiteAttacking(2, 7) == True): # c8
+                    return False
+                if(self.isWhiteAttacking(3, 7) == True): # d8
+                    return False
+                if(self.isWhiteAttacking(4, 7) == True): # e8
+                    return False
                 self.moveMakeBQSC()
-                return
+                return True
         
         # If we're supplied with a piece type - Store and remove it e.g. (Nf3 ---> f3)
         piece_type = "P"
         if(move[0].isupper()):
             piece_type = move[0]
+            if("BNRQK".find(piece_type) < 0):
+                return False
             move = move[1:]
         
         # If the move is a promotion - store and remove it e.g. (a8Q ---> a8)
         promotion = "-"
         if(move[-1:].isalpha()):
             promotion = move[-1:]
+            if("BNRQ".find(promotion) < 0):
+                return False
             move = move[:-1]
         
-        # By this point we should be left with either 2 or 3 characters
-        # Comparing the first and the last two characters will highlight extra information about row & col
-        # Move        Stripped       First         Second   Additional information
-        # Nf3    ---> f3        ---> f3      ==    f3       None
-        # Ngf3   ---> fg3       ---> fg      !=    g3       Piece originates from the f column
-        # e4     ---> e4        ---> e4      ==    e4       None
-        # N5xd4  ---> 5d4       ---> 5d      !=    d4       Piece originates from the 5th row
-        
-        if(len(move) != 2 and len(move) != 3):
+        # Can't promote pieces other than pawns
+        if(promotion != "-" and piece_type != "P"):
             return False
         
-        first_chunk = move[:2]
-        second_chunk = move[-2:]
+        # By this point we should be left with either 2, 3, or 4 characters
         
-        hint = "-"
-        if(first_chunk == second_chunk):
+        # If it's 2 or 3
+        # Comparing the first and the last two characters will highlight extra information about row & col
+        # Move         Stripped       First         Second   Additional information
+        # Nf3     ---> f3        ---> f3      ==    f3       None
+        # Ngf3    ---> fg3       ---> fg      !=    g3       Piece originates from the f column
+        # e4      ---> e4        ---> e4      ==    e4       None
+        # N5xd4   ---> 5d4       ---> 5d      !=    d4       Piece originates from the 5th row
+        # exd8=Q+ ---> ed8       ---> ed      !=    d8       Piece originates from the e column
+        #
+        # If it's 4
+        # The user might be using longhand notation
+        # e2e4
+        # a7a8Q
+        #
+        
+        hint_col = -1
+        hint_row = -1
+        firstChunk = move[:2]
+        secondChunk = move[-2:]
+        
+        if(self.onBoard(secondChunk) == False):
+            return False;
+        
+        if(len(move) == 4):
+            if(self.onBoard(firstChunk) == False):
+                return False;
+            hint_col = self.posGetCol(firstChunk)
+            hint_row = self.posGetRow(firstChunk)
+            move = move[2:]
+            piece_type = self.boardGet(hint_col, hint_row)
+        elif(len(move) == 3):
+            if(firstChunk != secondChunk):
+                if(firstChunk[0].isalpha() == True):
+                    hint_col = self.charToCol(firstChunk[0])
+                else:
+                    hint_row = self.charToRow(firstChunk[0])
+                move = move[1:]
+        elif(len(move) == 2):
             pass
         else:
-            hint = first_chunk[0]
-            move = move[1:]
-        
+            return False
+            
         # Convert the move to col & row
         col_to = self.posGetCol(move)
         row_to = self.posGetRow(move)
         
-        move_found = None
+        # Can't promote pieces other than pawns
         if(self.turn == "w"):
-            if(piece_type == "P"):
-                move_found = self.findMoveWP(col_to, row_to, hint)
-            elif(piece_type == "N"):
-                move_found = self.findMoveN("N", col_to, row_to, hint)
-            elif(piece_type == "B"):
-                move_found = self.findMoveDiagonal("B", col_to, row_to, hint)
-            elif(piece_type == "R"):
-                move_found = self.findMoveStraight("R", col_to, row_to, hint)
-            elif(piece_type == "Q"):
-                move_found = self.findMoveDiagonal("Q", col_to, row_to, hint)
-                if(move_found == None):
-                    move_found = self.findMoveStraight("Q", col_to, row_to, hint)
-            elif(piece_type == "K"):
-                move_found = self.findMoveKing("K", col_to, row_to)
-        elif(self.turn == "b"):
-            if(piece_type == "P"):
-                move_found = self.findMoveBP(col_to, row_to, hint)
-            elif(piece_type == "N"):
-                move_found = self.findMoveN("n", col_to, row_to, hint)
-            elif(piece_type == "B"):
-                move_found = self.findMoveDiagonal("b", col_to, row_to, hint)
-            elif(piece_type == "R"):
-                move_found = self.findMoveStraight("r", col_to, row_to, hint)
-            elif(piece_type == "Q"):
-                move_found = self.findMoveDiagonal("q", col_to, row_to, hint)
-                if(move_found == None):
-                    move_found = self.findMoveStraight("q", col_to, row_to, hint)
-            elif(piece_type == "K"):
-                move_found = self.findMoveKing("k", col_to, row_to)
+            if(promotion != "-" and row_to != 7):
+                return False
+        elif(self.turn == "n"):
+            if(promotion != "-" and row_to != 0):
+                return False
         
-        # If any moves fit the criteria, play the move
-        if(move_found != None):
-            self.moveMake(move_found[0], move_found[1], col_to, row_to, promotion)
+        # Create a list of candidate moves
+        moves_found = []
+        if(self.turn == "w"):
+            moves_found += self.findMoveWP(col_to, row_to)
+            moves_found += self.findMoveN("N", col_to, row_to)
+            moves_found += self.findMoveDiagonal("B", col_to, row_to)
+            moves_found += self.findMoveStraight("R", col_to, row_to)
+            moves_found += self.findMoveDiagonal("Q", col_to, row_to)
+            moves_found += self.findMoveStraight("Q", col_to, row_to)
+            moves_found += self.findMoveKing("K", col_to, row_to)
+        elif(self.turn == "b"):
+            moves_found += self.findMoveBP(col_to, row_to)
+            moves_found += self.findMoveN("n", col_to, row_to)
+            moves_found += self.findMoveDiagonal("b", col_to, row_to)
+            moves_found += self.findMoveStraight("r", col_to, row_to)
+            moves_found += self.findMoveDiagonal("q", col_to, row_to)
+            moves_found += self.findMoveStraight("q", col_to, row_to)
+            moves_found += self.findMoveKing("k", col_to, row_to)
+        
+        # Move must've been illegal
+        if(moves_found == []):
+            return False
+        
+        # Compare the moves to the piece type and the hint (if any)
+        for a in moves_found:
+            if(a[0].upper() != piece_type.upper()):
+                continue
+            
+            if(hint_col != -1 and a[1] != hint_col):
+                continue;
+            if(hint_row != -1 and a[2] != hint_row):
+                continue;
+            
+            self.moveMake(a[1], a[2], col_to, row_to, promotion)
             return True
-        # If not, the move must've been illegal
+        
+        # Didn't find any matches
         return False
     
     def moveParses(self, moves):
@@ -704,5 +816,31 @@ def main(reactor, description):
     return d
 
 if __name__ == '__main__':
+    game = ChessGame()
+    # Legal
+    print("##### Legal #####")
+    game.test("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",         "")
+    game.test("rnbqkb1r/1p2pppp/p2p1n2/8/3NP3/2N5/PPP2PPP/R1BQKB1R w KQkq - 0 6", "1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6")
+    game.test("rnbqkb1Q/pppppp2/5n2/8/8/8/PPPPPP1P/RNBQKBNR b KQq - 0 5",         "1. g4 Nf6 2. g5 h5 3. gxh6 Ng8 4. hxg7 Nf6 5. gxh8=Q")
+    game.test("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",      "1. e4")
+    game.test("rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2",    "1. e4 c5")
+    game.test("rnbqkb1r/pppppppp/5n2/6N1/8/8/PPPPPPPP/RNBQKB1R b KQkq - 3 2",     "1. Nf3 Nf6 2. Ng5")
+    game.test("rnbqkb1r/ppp1pppp/7n/8/3N4/5N2/PPPPPPPP/R1BQKB1R b KQkq - 0 6",    "1. Nf3 Nh6 2. Nc3 Ng8 3. Nd5 Nh6 4. Ne3 d5 5. Nf5 d4 6. N5xd4")
+    game.test("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2",    "1. e4 e5")
+    game.test("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2",    "1. e2e4 e7e5")
+    game.test("rnbqkb1r/ppppn1pp/4pp2/8/8/3BPN2/PPPP1PPP/RNBQ1RK1 b kq - 3 4",    "1. Nf3 f6 2. e3 e6 3. Bd3 Ne7 4. O-O")
+    
+    # Illegal
+    print("##### Illegal #####")
+    game.test("rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2",    "1. e4 Qxh1")
+    game.test("rnbqk1nr/pppp1ppp/8/4p3/1b1PN3/8/PPP1PPPP/R1BQKBNR w KQkq - 3 3",  "1. d4 e5 2. Nc3 Bb4 3. Ne4")
+    game.test("rnbqkb1r/pppppppp/5n2/6N1/8/8/PPPPPPPP/RNBQKB1R b KQkq - 3 2",     "1. e3 d5 2. Bb5+ Nc6 3. d3 Ne5")
+    game.test("rnbqkb1r/ppp1pppp/7n/8/3N4/5N2/PPPPPPPP/R1BQKB1R b KQkq - 0 6",    "1. e3 e6 2. Ke2 Ke7 3. Kf3 Kf6 4. Kf4 Kf5")
+    game.test("rnbqkb1r/ppp1pppp/7n/8/3N4/5N2/PPPPPPPP/R1BQKB1R b KQkq - 0 6",    "1. f4 Nf6 2. Kf2 Nd5 3. Ke3")
+    game.test("rn1qkbnr/p1pppppp/bp6/8/4B3/4PN2/PPPP1PPP/RNBQ1RK1 b kq - 7 5",    "1. Nf3 b6 2. e3 Ba6 3. Bd3 Nf6 4. Be4 Ng8 5. O-O")
+    game.test("rnbq1rk1/pppp1ppp/4pn2/8/5b2/BPN5/P1PPPPPP/R2QKBNR w KQ - 6 6",    "1. b3 Nf6 2. Nc3 e6 3. Nb1 Bd6 4. Nc3 Bf4 5. Ba3 O-O")
+    
+    input()
+    
     log.startLogging(sys.stderr)
     task.react(main, ['tcp:irc.freenode.net:6667'])
