@@ -976,6 +976,7 @@ class ChessBotIRCProtocol(irc.IRCClient):
 
     def __init__(self):
         self.deferred = defer.Deferred()
+        self.ops = ['Twipply', 'Miffo', 'qed', 'NIN101', 'mekhami']
 
     def connectionLost(self, reason):
         self.deferred.errback(reason)
@@ -1014,14 +1015,14 @@ class ChessBotIRCProtocol(irc.IRCClient):
         if channel == self.nickname:
             # When channel == self.nickname, the message was sent to the bot
             # directly and not to a channel. So we will answer directly too:
-            d = defer.maybeDeferred(func, rest)
+            d = defer.maybeDeferred(func, rest, user)
             d.addErrback(self._showError)
             d.addCallback(self._sendMessage, nick)
         else:
             if command == "board" or command == "help" or command == "quit":
                 # Otherwise, send the answer to the channel, and use the nick
                 # as addressing in the message itself:
-                d = defer.maybeDeferred(func, rest)
+                d = defer.maybeDeferred(func, rest, user)
                 d.addErrback(self._showError)
                 d.addCallback(self._sendMessage, channel)
             else:
@@ -1034,13 +1035,16 @@ class ChessBotIRCProtocol(irc.IRCClient):
     def _showError(self, failure):
         return failure.getErrorMessage()
     
-    def command_quit(self, rest):
-        self.quit()
+    def command_quit(self, rest, user):
+        if any([user.startswith(x) for x in self.ops]):
+            self.quit()
+        else:
+            return "Permission denied."
     
-    def command_help(self, rest):
+    def command_help(self, rest, user):
         return "IRC bot for ##chess on irc.freenode.org - https://github.com/mekhami/ChessBot#readme"
     
-    def command_board(self, rest):
+    def command_board(self, rest, user):
         game = ChessGame()
         
         if rest == "":
@@ -1052,7 +1056,7 @@ class ChessBotIRCProtocol(irc.IRCClient):
             return "Invalid moves"
         return r
     
-    def command_team(self, team):
+    def command_team(self, team, user):
         response = urllib2.urlopen("http://en.lichess.org/api/user?team={}&nb=100".format(team))
         data = json.load(response)
 
@@ -1064,7 +1068,7 @@ class ChessBotIRCProtocol(irc.IRCClient):
 
         return "{} players online:{}".format(team, online_users)
 
-    def command_live(self, player):
+    def command_live(self, player, user):
         if player and len(player) <= 16:
             try:
                 response = urllib2.urlopen("http://en.lichess.org/api/user/" + player)
