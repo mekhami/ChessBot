@@ -1035,7 +1035,7 @@ class ChessBotIRCProtocol(irc.IRCClient):
         return failure.getErrorMessage()
     
     def command_quit(self, rest):
-        return "kbai"
+        self.quit()
     
     def command_help(self, rest):
         return "IRC bot for ##chess on irc.freenode.org - https://github.com/mekhami/ChessBot#readme"
