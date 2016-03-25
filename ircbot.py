@@ -1091,7 +1091,7 @@ class ChessBotIRCProtocol(irc.IRCClient):
 
 class ChessIRCFactory(protocol.ReconnectingClientFactory):
     protocol = ChessBotIRCProtocol
-    channels = ['#chesstest']
+    channels = ['##chess']
 
 def main(reactor, description):
     endpoint = endpoints.clientFromString(reactor, description)
